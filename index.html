@@ -35,8 +35,8 @@
         }
 
         .chat-header {
-            background: #ffffff;
             padding: 18px 20px;
+            background: #ffffff;
             border-bottom: 1px solid #e8ecf1;
             display: flex;
             justify-content: space-between;
@@ -50,10 +50,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-        }
-
-        .chat-header h2 span {
-            font-size: 1.5rem;
         }
 
         .new-chat-btn {
@@ -144,6 +140,8 @@
             color: #991b1b;
             align-self: center;
             font-size: 0.85rem;
+            text-align: center;
+            max-width: 90%;
         }
 
         .typing-indicator {
@@ -225,6 +223,17 @@
             color: #9ca3af;
             padding: 6px;
         }
+
+        .retry-btn {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -248,7 +257,7 @@
 
         <div class="chat-messages" id="chatMessages">
             <div class="message bot">
-                أهلاً! اختر النموذج وابدأ المحادثة. سيتم تذكّر السياق تلقائياً.
+                أهلاً! اختر النموذج وابدأ المحادثة. إذا فشل الاتصال فتأكد من أن السيرفر يقبل طلبات CORS.
             </div>
         </div>
 
@@ -256,7 +265,7 @@
             <input type="text" id="messageInput" placeholder="اكتب رسالتك هنا..." autocomplete="off" />
             <button id="sendBtn" onclick="sendMessage()">إرسال</button>
         </div>
-        <div class="footer-note">بواسطة @VIPCODE3</div>
+        <div class="footer-note">بواسطة @VIPCODE3 • CORS يجب أن يكون مفعّلاً</div>
     </div>
 
     <script>
@@ -269,23 +278,31 @@
         const convIdDisplay = document.getElementById("convIdDisplay");
         const modelSelect = document.getElementById("modelSelect");
 
-        // بدء محادثة جديدة
         function startNewChat() {
             conversationId = null;
             convIdDisplay.textContent = "🔹 لا توجد محادثة نشطة";
             messagesDiv.innerHTML = `<div class="message bot">بدأت محادثة جديدة. كيف يمكنني مساعدتك؟</div>`;
         }
 
-        // إضافة رسالة إلى واجهة الدردشة
-        function addMessage(text, sender) {
+        function addMessage(text, sender, isRetry = false) {
             const msgDiv = document.createElement("div");
             msgDiv.classList.add("message", sender);
             msgDiv.textContent = text;
+
+            // إذا كانت رسالة خطأ، أضف زر إعادة المحاولة
+            if (sender === 'error' && isRetry) {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'retry-btn';
+                retryBtn.textContent = '🔄 إعادة المحاولة';
+                retryBtn.onclick = sendMessage;
+                msgDiv.appendChild(document.createElement('br'));
+                msgDiv.appendChild(retryBtn);
+            }
+
             messagesDiv.appendChild(msgDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // إظهار مؤشر الكتابة
         function showTyping() {
             const typingDiv = document.createElement("div");
             typingDiv.classList.add("typing-indicator");
@@ -295,18 +312,15 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // إخفاء مؤشر الكتابة
         function hideTyping() {
             const indicator = document.getElementById("typingIndicator");
             if (indicator) indicator.remove();
         }
 
-        // إرسال الرسالة
         async function sendMessage() {
             const message = messageInput.value.trim();
             if (!message) return;
 
-            // تعطيل الإدخال أثناء الانتظار
             messageInput.disabled = true;
             sendBtn.disabled = true;
             sendBtn.textContent = "⏳";
@@ -340,22 +354,27 @@
                     conversationId = data.conversation_id;
                     convIdDisplay.textContent = "🆔 " + conversationId;
                 } else {
-                    addMessage("❌ خطأ: " + (data.error || "استجابة غير متوقعة"), "error");
+                    addMessage("❌ خطأ: " + (data.error || "استجابة غير متوقعة"), "error", true);
                 }
             } catch (error) {
                 hideTyping();
-                addMessage("⚠️ فشل الاتصال بالخادم. تأكد من اتصالك بالإنترنت.", "error");
+                let errorMsg = "⚠️ فشل الاتصال بالخادم.\n";
+                // فحص إذا كان الخطأ بسبب CORS
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMsg += "السبب الأرجح: سياسة CORS. راسل @ZecoAI لتفعيل الهيدر في deepseek.php.";
+                } else {
+                    errorMsg += "تأكد من اتصالك بالإنترنت.";
+                }
+                addMessage(errorMsg, "error", true);
                 console.error(error);
             }
 
-            // إعادة تفعيل الإدخال
             messageInput.disabled = false;
             sendBtn.disabled = false;
             sendBtn.textContent = "إرسال";
             messageInput.focus();
         }
 
-        // إرسال بالضغط على Enter
         messageInput.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
                 e.preventDefault();
